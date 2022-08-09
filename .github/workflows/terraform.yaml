@@ -1,0 +1,47 @@
+name: "Terraform"
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: "Terraform"
+    runs-on: ubuntu-latest
+    container: cytopia/terragrunt
+    environment: production
+    env:
+      TERRAFORM_MODULE_CATALOGUE_TAG: ${{ secrets.TERRAFORM_MODULE_CATALOGUE_TAG }}
+      TERRAFORM_TOKEN: ${{ secrets.TERRAFORM_TOKEN}}
+      API_TOKEN: ${{secrets.API_TOKEN}}
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+  
+      # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+      - name: Terragrunt Init
+        # uses: docker://alpine/terragrunt:1.2.6
+        run: /usr/bin/terragrunt init
+
+      # Checks that all Terraform configuration files adhere to a canonical format
+      - name: Terragrunt Format
+        run: /usr/bin/terragrunt hclfmt 
+
+      # Generates an execution plan for Terraform
+      - name: Terragrunt Plan
+        run: /usr/bin/terragrunt run-all plan
+
+        # On push to "main", build or change infrastructure according to Terraform configuration files
+        # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
+        run: /usr/bin/terragrunt run-all apply -auto-approve -input=false
